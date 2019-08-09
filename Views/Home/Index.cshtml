@@ -1,0 +1,181 @@
+﻿@{
+    ViewBag.Title = "NodeMCU Demo";
+}
+
+<div class="jumbotron">
+    <div class="col-md-3"></div>
+    <div class="col-md-6">
+        <button type="button" id="btnToggle" data-state="1" class="btn btn-primary">Turn On</button>
+        <button type="button" id="btnBlink" data-state="1" class="btn btn-danger">Blink</button>
+    </div>
+</div>
+
+@*<div class="row">
+        <div class="col-md-4">
+            <h2>Getting started</h2>
+            <p>
+                ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
+                enables a clean separation of concerns and gives you full control over markup
+                for enjoyable, agile development.
+            </p>
+            <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
+        </div>
+        <div class="col-md-4">
+            <h2>Get more libraries</h2>
+            <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
+            <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
+        </div>
+        <div class="col-md-4">
+            <h2>Web Hosting</h2>
+            <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
+            <p><a class="btn btn-default" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
+        </div>
+    </div>*@
+
+@section Scripts
+{
+    <script type="text/javascript">
+        function current_state() {
+            btn = $('#btnToggle');
+            light = $('#light');
+            log = $('#log');
+            $.ajax({
+                url: 'toggle.php?current',
+                method: 'get',
+                success: function (data) {
+                    if (data == 1) {
+                        btn.data('state', '0');
+                        light.addClass('on');
+                        light.removeClass('off');
+                        btn.addClass('btn-danger');
+                        btn.removeClass('btn-success');
+                        btn.html('Turn Off');
+                    } else {
+                        btn.data('state', '1');
+                        light.addClass('off');
+                        light.removeClass('on');
+                        btn.addClass('btn-success');
+                        btn.removeClass('btn-danger');
+                        btn.html('Turn On');
+                    }
+                }
+            });
+            $.ajax({
+                url: 'toggle.php?log',
+                method: 'get',
+                success: function (data) {
+                    var lines = data.split('\n');
+                    lines.reverse();
+                    var result = '';
+                    for (var i = 0; i < lines.length; i++) {
+                        if (lines[i] != '') {
+                            var cells = lines[i].split('-');
+                            cell = '<tr>';
+                            for (var x = 0; x < cells.length; x++) {
+                                cell = cell + '<td>' + cells[x] + '</td>';
+                            }
+                            cell = cell + '</tr>';
+                            result = result + cell;
+                        }
+                    }
+                    log.html(result);
+                }
+            });
+        }
+
+        function getCurrentState() {
+            toastr.info("Getting current state...");
+            $.ajax({
+                url: '@Url.Action("GetCurrentState", "Home")',
+                type: 'GET',
+                contentType: "application/json",
+                dataType: "JSON"
+            }).done(function (res) {
+                if (res.Msg == "") {
+                    setToggle(res.Toggle);
+                    setBlink(res.Blink);
+                }
+                else
+                    toastr.error(res.Msg);
+                }).fail(function (error) {
+                    toastr.error('Unable to get state - ' + error.responseText);
+            });
+        }
+
+        function setToggle(crState) {
+            var btnToggle = $('#btnToggle');
+            if (crState == 1) {
+                btnToggle.data('state', '0');
+                btnToggle.addClass('btn-danger');
+                btnToggle.removeClass('btn-primary');
+                btnToggle.text("Turn Off");
+            } else {
+                btnToggle.data('state', '1');
+                btnToggle.addClass('btn-primary');
+                btnToggle.removeClass('btn-danger');
+                btnToggle.text("Turn On");
+            }
+        }
+
+        function setBlink(crState) {
+            var btnBlink = $('#btnBlink');
+            if (crState == 1) {
+                btnBlink.data('state', '0');
+                btnBlink.addClass('btn-danger');
+                btnBlink.removeClass('btn-success');
+                btnBlink.text("Blinking");
+            } else {
+                btnBlink.data('state', '1');
+                btnBlink.addClass('btn-success');
+                btnBlink.removeClass('btn-danger');
+                btnBlink.text("Blink");
+            }
+        }
+
+        $(document).ready(function () {
+            getCurrentState();
+           // setInterval(getCurrentState, 1000);
+            $('#btnToggle').click(function () {
+                toastr.info("Updating...");
+                var crState = $(this).data('state');
+                $.ajax({
+                    url: '@Url.Action("ToggleLED", "Home")',
+                    type: 'POST',
+                    contentType: "application/json",
+                    dataType: "JSON",
+                    data: JSON.stringify({ toggleVal: crState })
+                }).done(function (res) {
+                    if (res.Msg == "") {
+                        setToggle(crState);
+                        toastr.success("Updated Successfully");
+                    }
+                    else
+                        toastr.error(res.Msg);
+                }).fail(function (error) {
+                    toastr.error('Unable to update - ' + error.responseText);
+                });
+            });
+
+            $('#btnBlink').click(function () {
+                toastr.info("Updating...");
+                var crState = $(this).data('state');
+                $.ajax({
+                    url: '@Url.Action("BlinkLED", "Home")',
+                    type: 'POST',
+                    contentType: "application/json",
+                    dataType: "JSON",
+                    data: JSON.stringify({ blinkVal: crState })
+                }).done(function (res) {
+                    if (res.Msg == "") {
+                        setBlink(crState);
+                        toastr.success("Updated Successfully");
+                    }
+                    else
+                        toastr.error(res.Msg);
+                }).fail(function (error) {
+                    toastr.error('Unable to update - ' + error.responseText);
+                });
+            });
+        });
+    </script>
+}
